@@ -30,10 +30,11 @@ pipeline {
     post {
 		always {
 			script {
-				def message = "🔹 <b>Jenkins Report</b> 🔹\n" +
+				def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
+            def message = "🔹 <b>Jenkins Report</b> 🔹\n" +
                           "📌 <b>Job:</b> ${env.JOB_NAME} #${env.BUILD_NUMBER}\n" +
                           "🔗 <a href='${env.BUILD_URL}/allure'>Перейти к отчету</a>\n" +
-                          "🟢 <b>Статус:</b> ${currentBuild.result}"
+                          "${statusEmoji} <b>Статус:</b> ${currentBuild.result}"
 
             sh """
                 curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
