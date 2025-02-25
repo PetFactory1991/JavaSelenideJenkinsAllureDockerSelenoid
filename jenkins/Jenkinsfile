@@ -6,14 +6,9 @@ pipeline {
 				git 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
             }
         }
-        stage('Build') {
+        stage('Run Tests') {
 			steps {
-				sh 'mvn clean test'
-            }
-        }
-        stage('Allure Report') {
-			steps {
-				sh 'mvn allure:report'
+				sh 'mvn clean test -Dremote=http://165.22.93.142:4444/wd/hub'
             }
         }
     }
