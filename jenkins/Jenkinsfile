@@ -16,10 +16,9 @@ pipeline {
         }
         stage('Generate Allure Report') {
 			steps {
-				sh 'allure generate allure-results -o allure-report --clean'
-    }
-}
-
+				sh '/opt/homebrew/bin/allure generate allure-results -o allure-report --clean'
+    		}
+		}
     }
 }
 
