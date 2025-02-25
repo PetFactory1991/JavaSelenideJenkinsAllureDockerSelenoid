@@ -88,30 +88,28 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
                 // Отправка в Slack
                 def slackMessage = [
-                    text: "*Jenkins Report* ${statusEmoji}",
-                    attachments: [[
-                        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
-                        fields: [
-                            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
-                            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
-                            [title: "Всего тестов", value: "${totalTests}", short: true],
-                            [title: "✅ Прошло", value: "${passedTests}", short: true],
-                            [title: "❌ Упало", value: "${failedTests}", short: true],
-                            [title: "⏱ Время", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
-                            [title: "Автор", value: "${author}", short: true],
-                            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
-                            [title: "Allure Report", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
-                        ]
-                    ]]
-                ]
+    text: "*Jenkins Report* ${statusEmoji}",
+    attachments: [[
+        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
+        fields: [
+            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
+            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
+            [title: "Всего тестов", value: "${totalTests}", short: true],
+            [title: "✅ Прошло", value: "${passedTests}", short: true],
+            [title: "❌ Упало", value: "${failedTests}", short: true],
+            [title: "⏱ Время", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
+            [title: "Автор", value: "${author}", short: true],
+            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
+            [title: "Allure Report", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
+        ]
+    ]]
+]
 
-                writeJSON file: 'slackMessage.json', json: slackMessage, pretty: 4
-
-                sh """
-                    curl -X POST -H 'Content-type: application/json' \
-                    --data @slackMessage.json \
-                    ${SLACK_WEBHOOK_URL}
-                """
+sh """
+curl -X POST -H 'Content-type: application/json' \
+-d '${groovy.json.JsonOutput.toJson(slackMessage)}' \
+${SLACK_WEBHOOK_URL}
+"""
             }
 
             allure includeProperties: false, results: [[path: "allure-results"]]
