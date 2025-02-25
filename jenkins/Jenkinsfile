@@ -38,6 +38,11 @@ pipeline {
                 def brokenTests = summary.statistic.broken
                 def skippedTests = summary.statistic.skipped
 
+                def durationMs = summary.time.duration
+                def durationSec = (durationMs / 1000).intValue()
+                def durationMin = (durationSec / 60).intValue()
+                def durationRemainingSec = durationSec % 60
+
                 def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
                 def allureReportUrl = "${env.BUILD_URL}/allure"
 
@@ -50,6 +55,8 @@ pipeline {
 ❌ *Упало:* ${failedTests}
 ⚠️ *Сломано:* ${brokenTests}
 ⏩ *Пропущено:* ${skippedTests}
+
+⏱ *Время выполнения:* ${durationSec} сек (${durationMin} мин ${durationRemainingSec} сек)
 
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
