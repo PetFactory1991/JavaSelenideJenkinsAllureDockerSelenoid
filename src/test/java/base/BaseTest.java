@@ -1,17 +1,27 @@
 package base;
 
 import com.codeborne.selenide.Configuration;
-import org.testng.annotations.BeforeClass;
+import com.codeborne.selenide.logevents.SelenideLogger;
+import io.qameta.allure.selenide.AllureSelenide;
+import io.qameta.allure.testng.AllureTestNg;
+import listeners.TestListener;
+import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.Listeners;
 
+@Listeners({AllureTestNg.class, TestListener.class})
 public class BaseTest {
 
-    @BeforeClass
+    @BeforeSuite
     protected void setup() {
+        System.setProperty("allure.results.directory", "target/allure-results");
+        String browser = System.getProperty("browser", "chrome");
         Configuration.baseUrl = "https://www.expedia.com";
-        Configuration.browser = "chrome";
+        Configuration.browser = browser;
         Configuration.timeout = 10000;
-//        Configuration.browserCapabilities.setCapability("enableVNC", true);
-//        Configuration.browserCapabilities.setCapability("enableVideo", true);
+
+        SelenideLogger.addListener("AllureSelenide", new AllureSelenide()
+                .screenshots(true)
+                .savePageSource(true));
 
         // Логика для локального или удаленного запуска
         String remoteUrl = System.getProperty("remote");
