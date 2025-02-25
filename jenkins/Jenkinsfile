@@ -30,23 +30,40 @@ pipeline {
     post {
 		always {
 			script {
-				def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
-                def allureReportUrl = "${env.BUILD_URL}/allure"
+				def summary = readJSON file: 'allure-report/widgets/summary.json'
 
-                def message = """🔹 *Jenkins Report* 🔹
+            def totalTests = summary.statistic.total
+            def passedTests = summary.statistic.passed
+            def failedTests = summary.statistic.failed
+            def brokenTests = summary.statistic.broken
+            def skippedTests = summary.statistic.skipped
+
+            def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
+            def allureReportUrl = "${env.BUILD_URL}/allure"
+
+            def message = """🔹 *Jenkins Report* 🔹
 📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
 🔗 *Отчёт:* ${allureReportUrl}
+
+📊 *Всего тестов:* ${totalTests}
+✅ *Прошло:* ${passedTests}
+❌ *Упало:* ${failedTests}
+⚠️ *Сломано:* ${brokenTests}
+⏩ *Пропущено:* ${skippedTests}
+
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
-                sh """
-                    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-                    -d chat_id=${TELEGRAM_CHAT_ID} \
-                    -d text="${message}" \
-                    -d parse_mode="Markdown" \
-                    -d disable_web_page_preview=true
-                """
-            }
-            allure includeProperties: false, results: [[path: "allure-results"]]
+            sh """
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                -d chat_id=${TELEGRAM_CHAT_ID} \
+                -d text="${message}" \
+                -d parse_mode="Markdown" \
+                -d disable_web_page_preview=true
+            """
         }
+
+        allure includeProperties: false, results: [[path: "allure-results"]]
     }
+}
+
 }
