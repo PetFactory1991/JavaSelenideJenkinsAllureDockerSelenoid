@@ -1,19 +1,19 @@
 pipeline {
-    agent any
+	agent any
     stages {
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/your-repo/java-selenide-framework.git'
+		stage('Checkout') {
+			steps {
+				git 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
             }
         }
         stage('Build') {
-            steps {
-                sh 'mvn clean test'
+			steps {
+				sh 'mvn clean test'
             }
         }
         stage('Allure Report') {
-            steps {
-                sh 'mvn allure:report'
+			steps {
+				sh 'mvn allure:report'
             }
         }
     }

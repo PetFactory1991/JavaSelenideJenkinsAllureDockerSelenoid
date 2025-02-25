@@ -1,0 +1,9 @@
+1. Install docker and docker-compose in server
+apt update && apt upgrade -y
+apt install -y docker.io docker-compose
+
+2. Run tests
+mvn clean test -Dremote=http://165.22.93.142:4444/wd/hub
+
+docker-compose up -d
+docker-compose down

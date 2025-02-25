@@ -10,6 +10,8 @@ public class BaseTest {
         Configuration.baseUrl = "https://www.expedia.com";
         Configuration.browser = "chrome";
         Configuration.timeout = 10000;
+//        Configuration.browserCapabilities.setCapability("enableVNC", true);
+//        Configuration.browserCapabilities.setCapability("enableVideo", true);
 
         // Логика для локального или удаленного запуска
         String remoteUrl = System.getProperty("remote");

@@ -1,0 +1,10 @@
+1. Download .cd file to selenoid folder
+curl -fsSL https://aerokube.com/cm/bash | bash
+
+2. Run selenoid
+./cm selenoid start --vnc --shm-size 2g --force
+
+P.S. --shm-size 2g very important for running tests
+
+3. Run UI
+./cm selenoid-ui start
