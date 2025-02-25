@@ -30,17 +30,17 @@ pipeline {
     post {
 		always {
 			script {
-				def message = "🔹 *Jenkins Report* 🔹\n" +
-							  "📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}\n" +
-							  "🔗 [Перейти к отчету](${env.BUILD_URL}/allure)\n" +
-							  "🟢 *Статус:* ${currentBuild.result}"
+				def message = "🔹 <b>Jenkins Report</b> 🔹\n" +
+                          "📌 <b>Job:</b> ${env.JOB_NAME} #${env.BUILD_NUMBER}\n" +
+                          "🔗 <a href='${env.BUILD_URL}/allure'>Перейти к отчету</a>\n" +
+                          "🟢 <b>Статус:</b> ${currentBuild.result}"
 
-				sh """
-					curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-					-d chat_id=${TELEGRAM_CHAT_ID} \
-					-d text="${message}" \
-					-d parse_mode="Markdown"
-				"""
+            sh """
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                -d chat_id=${TELEGRAM_CHAT_ID} \
+                -d text="${message}" \
+                -d parse_mode="HTML"
+            """
 			}
 			allure includeProperties: false, results: [[path: "allure-results"]]
         }
