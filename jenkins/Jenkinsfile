@@ -92,7 +92,7 @@ pipeline {
 
                 def telegramResponse = httpRequest(
                     httpMode: 'POST',
-                    contentType: 'APPLICATION/json',
+                    contentType: 'APPLICATION_JSON',
                     requestBody: telegramJson,
                     url: "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage",
                     validResponseCodes: '100:399'
@@ -187,7 +187,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK_URL')]) {
 					def slackResponse = httpRequest(
                         httpMode: 'POST',
-                        contentType: 'APPLICATION/json',
+                        contentType: 'APPLICATION_JSON',
                         requestBody: slackJson,
                         url: SLACK_WEBHOOK_URL,
                         validResponseCodes: '100:399'
