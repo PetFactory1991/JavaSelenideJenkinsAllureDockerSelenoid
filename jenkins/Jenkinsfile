@@ -1,11 +1,14 @@
 pipeline {
 	agent any
+    options {
+		cache(definitions: [mavenCache(path: "~/.m2/repository")])
+    }
     parameters {
 		string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
     }
     environment {
 		ALLURE_HOME = "/opt/homebrew/bin/allure"
-		MAVEN_HOME = "/opt/homebrew/bin/mvn"
+        MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
         PATH = "${ALLURE_HOME}:${env.PATH}"
@@ -24,30 +27,29 @@ pipeline {
         stage('Generate Allure Report') {
 			steps {
 				sh "${ALLURE_HOME} generate allure-results -o allure-report --clean"
-    		}
-		}
+            }
+        }
     }
     post {
 		always {
 			script {
 				def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
-            def allureReportUrl = "${env.BUILD_URL}/allure"
+                def allureReportUrl = "${env.BUILD_URL}/allure"
 
-            def message = """🔹 *Jenkins Report* 🔹
+                def message = """🔹 *Jenkins Report* 🔹
 📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
 🔗 *Отчёт:* ${allureReportUrl}
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
-            sh """
-                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-                -d chat_id=${TELEGRAM_CHAT_ID} \
-                -d text="${message}" \
-                -d parse_mode="Markdown" \
-                -d disable_web_page_preview=true
-            """
-			}
-			allure includeProperties: false, results: [[path: "allure-results"]]
+                sh """
+                    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                    -d chat_id=${TELEGRAM_CHAT_ID} \
+                    -d text="${message}" \
+                    -d parse_mode="Markdown" \
+                    -d disable_web_page_preview=true
+                """
+            }
+            allure includeProperties: false, results: [[path: "allure-results"]]
         }
     }
 }
-

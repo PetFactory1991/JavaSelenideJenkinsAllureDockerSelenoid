@@ -4,11 +4,13 @@ import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import io.qameta.allure.selenide.AllureSelenide;
 import io.qameta.allure.testng.AllureTestNg;
+import listeners.RetryListener;
 import listeners.TestListener;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Listeners;
 
-@Listeners({AllureTestNg.class, TestListener.class})
+
+@Listeners({AllureTestNg.class, TestListener.class, RetryListener.class})
 public class BaseTest {
 
     @BeforeSuite
