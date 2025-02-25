@@ -8,8 +8,9 @@ pipeline {
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
-        // Используйте рабочий URL вебхука
-        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+        // Здесь значение SLACK_WEBHOOK_URL будет получено из Jenkins Credentials
+        // (по умолчанию можно задать тестовый URL, который потом переопределится)
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/dummy/url"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
@@ -109,15 +110,20 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                 ]
                 def slackPayload = groovy.json.JsonOutput.toJson(slackMessage)
 
-                // Используем withCredentials для получения вебхука из Jenkins Credentials
+                // Используем withCredentials для получения SLACK_WEBHOOK_URL из Jenkins Credentials
                 withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK_URL')]) {
-					sh """
-                        curl -X POST -H 'Content-type: application/json' --data '${slackPayload}' $SLACK_WEBHOOK_URL
-                    """
+					def slackResponse = httpRequest(
+                        httpMode: 'POST',
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: slackPayload,
+                        url: SLACK_WEBHOOK_URL,
+                        validResponseCodes: '100:399'
+                    )
+                    echo "Slack response: ${slackResponse.content}"
                 }
-            }
+			}
             // Публикация Allure-отчёта
             allure includeProperties: false, results: [[path: "allure-results"]]
-        }
+		}
     }
 }
