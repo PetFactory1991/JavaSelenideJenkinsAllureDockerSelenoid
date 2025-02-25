@@ -1,8 +1,5 @@
 pipeline {
 	agent any
-    options {
-		cache(definitions: [mavenCache(path: "~/.m2/repository")])
-    }
     parameters {
 		string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
     }
@@ -16,12 +13,21 @@ pipeline {
     stages {
 		stage('Checkout') {
 			steps {
-				git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
+				git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git"
+            }
+        }
+        stage('Cache Maven Dependencies') {
+			steps {
+				withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
+					sh "mvn dependency:go-offline"
+                }
             }
         }
         stage('Run Tests') {
 			steps {
-				sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+				withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
+					sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+                }
             }
         }
         stage('Generate Allure Report') {
