@@ -1,0 +1,19 @@
+version: "3"
+services:
+  selenoid:
+    image: "aerokube/selenoid:latest-release"
+    container_name: selenoid
+    ports:
+      - "4444:4444"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./config:/etc/selenoid/"
+    command: [ "-limit", "5" ]
+
+  selenoid-ui:
+    image: "aerokube/selenoid-ui:latest-release"
+    container_name: selenoid-ui
+    links:
+      - selenoid
+    ports:
+      - "8080:8080"
