@@ -1,47 +1,47 @@
 pipeline {
-    agent any
+	agent any
     parameters {
-        string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
+		string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
     }
     environment {
-        ALLURE_HOME = "/opt/homebrew/bin/allure"
+		ALLURE_HOME = "/opt/homebrew/bin/allure"
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
-        // Значение SLACK_WEBHOOK_URL будет получено из Jenkins Credentials
-        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/dummy/url"
+        // Используйте рабочий URL вебхука
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
+		stage('Checkout') {
+			steps {
+				git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
             }
         }
         stage('Cache Maven Dependencies') {
-            steps {
-                sh "${MAVEN_HOME} dependency:go-offline"
+			steps {
+				sh "${MAVEN_HOME} dependency:go-offline"
             }
         }
         stage('Run Tests') {
-            steps {
-                script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+			steps {
+				script {
+					catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+						sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
                     }
                 }
             }
         }
         stage('Generate Allure Report') {
-            steps {
-                sh "${ALLURE_HOME} generate allure-results -o allure-report --clean"
+			steps {
+				sh "${ALLURE_HOME} generate allure-results -o allure-report --clean"
             }
         }
     }
     post {
-        always {
-            script {
-                // Чтение данных Allure-отчёта
+		always {
+			script {
+				// Чтение данных Allure-отчёта
                 def summary = readJSON file: 'allure-report/widgets/summary.json'
                 def totalTests = summary.statistic.total
                 def passedTests = summary.statistic.passed
@@ -61,139 +61,59 @@ pipeline {
                 def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
                 def commitUrl = "https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid/commit/${commitHash}"
 
-                /////////////////////////////////
-                // Формирование уведомления для Telegram с inline-клавиатурой
-                def telegramMessage = """*Jenkins Build Report* ${statusEmoji}
-*Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
-*Статус:* ${currentBuild.result}
-*Автор:* ${author}
-*Commit:* <${commitUrl}|${commitHash.take(7)}> — ${commitMessage}
+                def telegramMessage = """🔹 *Jenkins Report* 🔹
+📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
+👤 *Автор:* ${author}
+💬 *Коммит:* [${commitHash.take(7)}](${commitUrl}) — ${commitMessage}
+🌍 *Browser:* ${params.BROWSER.toUpperCase()} | Remote: 165.22.93.142
+🔗 [Allure Report](${allureReportUrl})
 
-*Пройдено:* ${passedTests}   *Упало:* ${failedTests}
-*Сломано:* ${brokenTests}   *Пропущено:* ${skippedTests}
-*Время выполнения:* ${durationMin} мин ${durationRemainingSec} сек
-"""
-                def telegramKeyboard = [
-                    inline_keyboard: [
-                        [
-                            [ text: "Посмотреть Allure-отчёт", url: allureReportUrl ],
-                            [ text: "Лог сборки", url: "${env.BUILD_URL}console" ]
+📊 *Всего тестов:* ${totalTests}
+✅ *Прошло:* ${passedTests}
+❌ *Упало:* ${failedTests}
+⚠️ *Сломано:* ${brokenTests}
+⏩ *Пропущено:* ${skippedTests}
+
+⏱ *Время выполнения:* ${durationMin} мин ${durationRemainingSec} сек
+
+${statusEmoji} *Статус:* ${currentBuild.result}"""
+
+                // Отправка уведомления в Telegram
+                sh """
+                    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                    -d chat_id=${TELEGRAM_CHAT_ID} \
+                    -d text='${telegramMessage}' \
+                    -d parse_mode="Markdown" \
+                    -d disable_web_page_preview=true
+                """
+
+                // Формирование сообщения для Slack
+                def slackMessage = [
+                    text: "*Jenkins Report* ${statusEmoji}",
+                    attachments: [[
+                        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
+                        fields: [
+                            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
+                            [title: "Автор", value: author, short: true],
+                            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
+                            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
+                            [title: "Всего тестов", value: "${totalTests}", short: true],
+                            [title: "Прошло ✅", value: "${passedTests}", short: true],
+                            [title: "Упало ❌", value: "${failedTests}", short: true],
+                            [title: "Сломано ⚠️", value: "${brokenTests}", short: true],
+                            [title: "Пропущено ⏩", value: "${skippedTests}", short: true],
+                            [title: "Время выполнения ⏱", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
+                            [title: "Отчёт 📋", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
                         ]
-                    ]
+                    ]]
                 ]
-                // Передаём reply_markup как объект, а не строку
-                def telegramPayload = [
-                    chat_id: TELEGRAM_CHAT_ID,
-                    text: telegramMessage,
-                    parse_mode: "Markdown",
-                    disable_web_page_preview: true,
-                    reply_markup: telegramKeyboard
-                ]
-                def telegramJson = groovy.json.JsonOutput.toJson(telegramPayload)
+                def slackPayload = groovy.json.JsonOutput.toJson(slackMessage)
 
-                def telegramResponse = httpRequest(
-                    httpMode: 'POST',
-                    contentType: 'APPLICATION_JSON',
-                    requestBody: telegramJson,
-                    url: "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage",
-                    validResponseCodes: '100:399'
-                )
-                echo "Telegram response: ${telegramResponse.content}"
-
-                /////////////////////////////////
-                // Формирование уведомления для Slack с использованием Block Kit
-                def slackBlocks = [
-                    blocks: [
-                        [
-                            type: "section",
-                            text: [
-                                type: "mrkdwn",
-                                text: "*Jenkins Build Report* ${statusEmoji}"
-                            ]
-                        ],
-                        [
-                            type: "section",
-                            fields: [
-                                [
-                                    type: "mrkdwn",
-                                    text: "*Job:*\n${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                                ],
-                                [
-                                    type: "mrkdwn",
-                                    text: "*Статус:*\n${currentBuild.result}"
-                                ]
-                            ]
-                        ],
-                        [
-                            type: "section",
-                            text: [
-                                type: "mrkdwn",
-                                text: "*Commit:*\n<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}"
-                            ]
-                        ],
-                        [
-                            type: "section",
-                            fields: [
-                                [
-                                    type: "mrkdwn",
-                                    text: "*Пройдено:*\n${passedTests}"
-                                ],
-                                [
-                                    type: "mrkdwn",
-                                    text: "*Упало:*\n${failedTests}"
-                                ],
-                                [
-                                    type: "mrkdwn",
-                                    text: "*Сломано:*\n${brokenTests}"
-                                ],
-                                [
-                                    type: "mrkdwn",
-                                    text: "*Пропущено:*\n${skippedTests}"
-                                ]
-                            ]
-                        ],
-                        [
-                            type: "section",
-                            text: [
-                                type: "mrkdwn",
-                                text: "*Время выполнения:*\n${durationMin} мин ${durationRemainingSec} сек"
-                            ]
-                        ],
-                        [
-                            type: "actions",
-                            elements: [
-                                [
-                                    type: "button",
-                                    text: [
-                                        type: "plain_text",
-                                        text: "Посмотреть Allure-отчёт"
-                                    ],
-                                    url: allureReportUrl
-                                ],
-                                [
-                                    type: "button",
-                                    text: [
-                                        type: "plain_text",
-                                        text: "Лог сборки"
-                                    ],
-                                    url: "${env.BUILD_URL}console"
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-                def slackJson = groovy.json.JsonOutput.toJson(slackBlocks)
-
-                // Отправка уведомления в Slack через httpRequest, используя credentials
+                // Используем withCredentials для получения вебхука из Jenkins Credentials
                 withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK_URL')]) {
-                    def slackResponse = httpRequest(
-                        httpMode: 'POST',
-                        contentType: 'APPLICATION_JSON',
-                        requestBody: slackJson,
-                        url: SLACK_WEBHOOK_URL,
-                        validResponseCodes: '100:399'
-                    )
-                    echo "Slack response: ${slackResponse.content}"
+					sh """
+                        curl -X POST -H 'Content-type: application/json' --data '${slackPayload}' $SLACK_WEBHOOK_URL
+                    """
                 }
             }
             // Публикация Allure-отчёта
