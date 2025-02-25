@@ -16,9 +16,18 @@ pipeline {
 				git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
             }
         }
+        stage('Cache Maven Dependencies') {
+			steps {
+				sh "${MAVEN_HOME} dependency:go-offline"
+            }
+        }
         stage('Run Tests') {
 			steps {
-				sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+				script {
+					catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+						sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+                    }
+                }
             }
         }
         stage('Generate Allure Report') {
@@ -37,18 +46,26 @@ pipeline {
                 def failedTests = summary.statistic.failed
                 def brokenTests = summary.statistic.broken
                 def skippedTests = summary.statistic.skipped
-
                 def durationMs = summary.time.duration
-                def durationSec = (durationMs / 1000).intValue()
-                def durationMin = (durationSec / 60).intValue()
-                def durationRemainingSec = durationSec % 60
+                def durationSec = (durationMs / 1000).toInteger()
+                def durationMin = durationSec / 60 as int
+                def durationRemainingSec = durationSec % 60 as int
 
                 def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
                 def allureReportUrl = "${env.BUILD_URL}/allure"
 
+                def commitHash = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+                def author = sh(script: "git show -s --pretty='%an'", returnStdout: true).trim()
+                def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                def commitUrl = "https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid/commit/${commitHash}"
+
                 def message = """🔹 *Jenkins Report* 🔹
 📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
-🔗 *Отчёт:* ${allureReportUrl}
+👤 *Автор:* ${commitHash.take(7)} — ${commitMessage}
+🔗 [Посмотреть коммит](${commitUrl})
+📋 *Отчёт:* [Allure Report](${allureReportUrl})
+
+🌍 *Browser:* ${params.BROWSER.toUpperCase()} | Remote: 165.22.93.142
 
 📊 *Всего тестов:* ${totalTests}
 ✅ *Прошло:* ${passedTests}
@@ -58,7 +75,9 @@ pipeline {
 
 ⏱ *Время выполнения:* ${durationSec} сек (${durationMin} мин ${durationRemainingSec} сек)
 
-${statusEmoji} *Статус:* ${currentBuild.result}"""
+${statusEmoji} *Статус:* ${currentBuild.result}
+👤 *Автор:* ${commitHash.take(7)} — [Смотреть коммит](${commitUrl})
+💬 *Комментарий:* ${commitMessage}"""
 
                 sh """
                     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
@@ -68,7 +87,6 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                     -d disable_web_page_preview=true
                 """
             }
-
             allure includeProperties: false, results: [[path: "allure-results"]]
         }
     }
