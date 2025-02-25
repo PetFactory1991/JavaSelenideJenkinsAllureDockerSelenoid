@@ -8,7 +8,8 @@ pipeline {
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
-        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+        // Проверьте, что вебхук активен и URL указан правильно
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
@@ -40,8 +41,8 @@ pipeline {
     post {
 		always {
 			script {
-				def summary = readJSON file: 'allure-report/widgets/summary.json'
-
+				// Чтение данных из Allure отчёта
+                def summary = readJSON file: 'allure-report/widgets/summary.json'
                 def totalTests = summary.statistic.total
                 def passedTests = summary.statistic.passed
                 def failedTests = summary.statistic.failed
@@ -77,7 +78,7 @@ pipeline {
 
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
-                // Telegram
+                // Отправка сообщения в Telegram
                 sh """
                     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                     -d chat_id=${TELEGRAM_CHAT_ID} \
@@ -86,7 +87,7 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                     -d disable_web_page_preview=true
                 """
 
-                // Slack
+                // Формирование сообщения для Slack
                 def slackMessage = [
                     text: "*Jenkins Report* ${statusEmoji}",
                     attachments: [[
@@ -107,15 +108,21 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                     ]]
                 ]
 
-                httpRequest(
-                    httpMode: 'POST',
-                    acceptType: 'APPLICATION_JSON',
-                    contentType: 'APPLICATION_JSON',
-                    requestBody: groovy.json.JsonOutput.toJson(slackMessage),
-                    url: "${SLACK_WEBHOOK_URL}"
-                )
+                // Отправка сообщения в Slack с обработкой ошибок
+                try {
+					def response = httpRequest(
+                        httpMode: 'POST',
+                        acceptType: 'APPLICATION_JSON',
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: groovy.json.JsonOutput.toJson(slackMessage),
+                        url: "${SLACK_WEBHOOK_URL}"
+                    )
+                    echo "Slack response: ${response.content}"
+                } catch (Exception err) {
+					echo "Ошибка при отправке сообщения в Slack: ${err}"
+                }
             }
-
+            // Публикация отчёта Allure
             allure includeProperties: false, results: [[path: "allure-results"]]
         }
     }
