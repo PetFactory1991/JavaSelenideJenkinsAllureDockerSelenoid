@@ -3,6 +3,11 @@ pipeline {
     parameters {
 		string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
     }
+    environment {
+		ALLURE_HOME = "/opt/homebrew/bin/allure"
+		MAVEN_HOME = "/opt/homebrew/bin/mvn"
+        PATH = "${ALLURE_HOME}:${env.PATH}"
+    }
     stages {
 		stage('Checkout') {
 			steps {
@@ -11,12 +16,12 @@ pipeline {
         }
         stage('Run Tests') {
 			steps {
-				sh "/opt/homebrew/bin/mvn clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+				sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
             }
         }
         stage('Generate Allure Report') {
 			steps {
-				sh '/opt/homebrew/bin/allure generate allure-results -o allure-report --clean'
+				sh "${ALLURE_HOME} generate allure-results -o allure-report --clean"
     		}
 		}
     }
