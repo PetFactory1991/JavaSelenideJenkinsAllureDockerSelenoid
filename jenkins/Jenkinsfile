@@ -8,6 +8,7 @@ pipeline {
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
@@ -61,11 +62,10 @@ pipeline {
 
                 def message = """🔹 *Jenkins Report* 🔹
 📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
-👤 *Автор:* ${commitHash.take(7)} — ${commitMessage}
-🔗 [Посмотреть коммит](${commitUrl})
-📋 *Отчёт:* [Allure Report](${allureReportUrl})
-
+👤 *Автор:* ${author}
+💬 *Коммит:* [${commitHash.take(7)}](${commitUrl}) — ${commitMessage}
 🌍 *Browser:* ${params.BROWSER.toUpperCase()} | Remote: 165.22.93.142
+🔗 [Allure Report](${allureReportUrl})
 
 📊 *Всего тестов:* ${totalTests}
 ✅ *Прошло:* ${passedTests}
@@ -75,10 +75,9 @@ pipeline {
 
 ⏱ *Время выполнения:* ${durationSec} сек (${durationMin} мин ${durationRemainingSec} сек)
 
-${statusEmoji} *Статус:* ${currentBuild.result}
-👤 *Автор:* ${commitHash.take(7)} — [Смотреть коммит](${commitUrl})
-💬 *Комментарий:* ${commitMessage}"""
+${statusEmoji} *Статус:* ${currentBuild.result}"""
 
+                // Отправка в Telegram
                 sh """
                     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                     -d chat_id=${TELEGRAM_CHAT_ID} \
@@ -86,7 +85,35 @@ ${statusEmoji} *Статус:* ${currentBuild.result}
                     -d parse_mode="Markdown" \
                     -d disable_web_page_preview=true
                 """
+
+                // Отправка в Slack
+                def slackMessage = [
+                    text: "*Jenkins Report* ${statusEmoji}",
+                    attachments: [[
+                        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
+                        fields: [
+                            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
+                            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
+                            [title: "Всего тестов", value: "${totalTests}", short: true],
+                            [title: "✅ Прошло", value: "${passedTests}", short: true],
+                            [title: "❌ Упало", value: "${failedTests}", short: true],
+                            [title: "⏱ Время", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
+                            [title: "Автор", value: "${author}", short: true],
+                            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
+                            [title: "Allure Report", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
+                        ]
+                    ]]
+                ]
+
+                writeJSON file: 'slackMessage.json', json: slackMessage, pretty: 4
+
+                sh """
+                    curl -X POST -H 'Content-type: application/json' \
+                    --data @slackMessage.json \
+                    ${SLACK_WEBHOOK_URL}
+                """
             }
+
             allure includeProperties: false, results: [[path: "allure-results"]]
         }
     }
