@@ -8,7 +8,7 @@ pipeline {
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
-        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/TXXXXXXX/BXXXXXXX/XXXXXXXXXXXX"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
@@ -60,7 +60,7 @@ pipeline {
                 def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
                 def commitUrl = "https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid/commit/${commitHash}"
 
-                def message = """🔹 *Jenkins Report* 🔹
+                def telegramMessage = """🔹 *Jenkins Report* 🔹
 📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
 👤 *Автор:* ${author}
 💬 *Коммит:* [${commitHash.take(7)}](${commitUrl}) — ${commitMessage}
@@ -73,7 +73,7 @@ pipeline {
 ⚠️ *Сломано:* ${brokenTests}
 ⏩ *Пропущено:* ${skippedTests}
 
-⏱ *Время выполнения:* ${durationSec} сек (${durationMin} мин ${durationRemainingSec} сек)
+⏱ *Время выполнения:* ${durationMin} мин ${durationRemainingSec} сек
 
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
@@ -81,35 +81,37 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                 sh """
                     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                     -d chat_id=${TELEGRAM_CHAT_ID} \
-                    -d text="${message}" \
+                    -d text="${telegramMessage}" \
                     -d parse_mode="Markdown" \
                     -d disable_web_page_preview=true
                 """
 
-                // Отправка в Slack
+                // Slack отправка
                 def slackMessage = [
-    text: "*Jenkins Report* ${statusEmoji}",
-    attachments: [[
-        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
-        fields: [
-            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
-            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
-            [title: "Всего тестов", value: "${totalTests}", short: true],
-            [title: "✅ Прошло", value: "${passedTests}", short: true],
-            [title: "❌ Упало", value: "${failedTests}", short: true],
-            [title: "⏱ Время", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
-            [title: "Автор", value: "${author}", short: true],
-            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
-            [title: "Allure Report", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
-        ]
-    ]]
-]
+                    text: "*Jenkins Report* ${statusEmoji}",
+                    attachments: [[
+                        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
+                        fields: [
+                            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
+                            [title: "Автор", value: author, short: true],
+                            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
+                            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
+                            [title: "Всего тестов", value: "${totalTests}", short: true],
+                            [title: "Прошло ✅", value: "${passedTests}", short: true],
+                            [title: "Упало ❌", value: "${failedTests}", short: true],
+                            [title: "Сломано ⚠️", value: "${brokenTests}", short: true],
+                            [title: "Пропущено ⏩", value: "${skippedTests}", short: true],
+                            [title: "Время выполнения ⏱", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
+                            [title: "Отчёт 📋", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
+                        ]
+                    ]]
+                ]
 
-sh """
-curl -X POST -H 'Content-type: application/json' \
--d '${groovy.json.JsonOutput.toJson(slackMessage)}' \
-${SLACK_WEBHOOK_URL}
-"""
+                sh """
+                    curl -X POST -H 'Content-type: application/json' \
+                    -d '${groovy.json.JsonOutput.toJson(slackMessage)}' \
+                    ${SLACK_WEBHOOK_URL}
+                """
             }
 
             allure includeProperties: false, results: [[path: "allure-results"]]
