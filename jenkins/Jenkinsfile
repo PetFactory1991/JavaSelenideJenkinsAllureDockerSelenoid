@@ -8,7 +8,7 @@ pipeline {
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
-        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
