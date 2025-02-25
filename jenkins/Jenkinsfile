@@ -6,6 +6,8 @@ pipeline {
     environment {
 		ALLURE_HOME = "/opt/homebrew/bin/allure"
 		MAVEN_HOME = "/opt/homebrew/bin/mvn"
+        TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
+        TELEGRAM_CHAT_ID = "7873857"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
@@ -27,6 +29,19 @@ pipeline {
     }
     post {
 		always {
+			script {
+				def message = "🔹 *Jenkins Report* 🔹\n" +
+							  "📌 *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}\n" +
+							  "🔗 [Перейти к отчету](${env.BUILD_URL}/allure)\n" +
+							  "🟢 *Статус:* ${currentBuild.result}"
+
+				sh """
+					curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+					-d chat_id=${TELEGRAM_CHAT_ID} \
+					-d text="${message}" \
+					-d parse_mode="Markdown"
+				"""
+			}
 			allure includeProperties: false, results: [[path: "allure-results"]]
         }
     }
