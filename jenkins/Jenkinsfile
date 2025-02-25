@@ -77,16 +77,16 @@ pipeline {
 
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
-                // Отправка в Telegram
+                // Telegram
                 sh """
                     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                     -d chat_id=${TELEGRAM_CHAT_ID} \
-                    -d text="${telegramMessage}" \
+                    -d text='${telegramMessage}' \
                     -d parse_mode="Markdown" \
                     -d disable_web_page_preview=true
                 """
 
-                // Slack отправка
+                // Slack
                 def slackMessage = [
                     text: "*Jenkins Report* ${statusEmoji}",
                     attachments: [[
@@ -107,11 +107,13 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                     ]]
                 ]
 
-                sh """
-                    curl -X POST -H 'Content-type: application/json' \
-                    -d '${groovy.json.JsonOutput.toJson(slackMessage)}' \
-                    ${SLACK_WEBHOOK_URL}
-                """
+                httpRequest(
+                    httpMode: 'POST',
+                    acceptType: 'APPLICATION_JSON',
+                    contentType: 'APPLICATION_JSON',
+                    requestBody: groovy.json.JsonOutput.toJson(slackMessage),
+                    url: "${SLACK_WEBHOOK_URL}"
+                )
             }
 
             allure includeProperties: false, results: [[path: "allure-results"]]
