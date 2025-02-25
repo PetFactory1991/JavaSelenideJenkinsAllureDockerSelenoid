@@ -8,7 +8,7 @@ pipeline {
         MAVEN_HOME = "/opt/homebrew/bin/mvn"
         TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
         TELEGRAM_CHAT_ID = "7873857"
-        // Проверьте, что вебхук активен и URL указан правильно
+        // Используйте рабочий URL вебхука
         SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
@@ -41,7 +41,7 @@ pipeline {
     post {
 		always {
 			script {
-				// Чтение данных из Allure отчёта
+				// Чтение данных Allure-отчёта
                 def summary = readJSON file: 'allure-report/widgets/summary.json'
                 def totalTests = summary.statistic.total
                 def passedTests = summary.statistic.passed
@@ -78,7 +78,7 @@ pipeline {
 
 ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
-                // Отправка сообщения в Telegram
+                // Отправка уведомления в Telegram
                 sh """
                     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                     -d chat_id=${TELEGRAM_CHAT_ID} \
@@ -107,22 +107,14 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                         ]
                     ]]
                 ]
+                def slackPayload = groovy.json.JsonOutput.toJson(slackMessage)
 
-                // Отправка сообщения в Slack с обработкой ошибок
-                try {
-					def response = httpRequest(
-                        httpMode: 'POST',
-                        acceptType: 'APPLICATION_JSON',
-                        contentType: 'APPLICATION_JSON',
-                        requestBody: groovy.json.JsonOutput.toJson(slackMessage),
-                        url: "${SLACK_WEBHOOK_URL}"
-                    )
-                    echo "Slack response: ${response.content}"
-                } catch (Exception err) {
-					echo "Ошибка при отправке сообщения в Slack: ${err}"
-                }
+                // Отправка уведомления в Slack с использованием curl
+                sh """
+                    curl -X POST -H 'Content-type: application/json' --data '${slackPayload}' ${SLACK_WEBHOOK_URL}
+                """
             }
-            // Публикация отчёта Allure
+            // Публикация Allure-отчёта
             allure includeProperties: false, results: [[path: "allure-results"]]
         }
     }
