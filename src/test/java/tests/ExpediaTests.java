@@ -1,30 +1,28 @@
 package tests;
 
-import base.BaseTest;
+import static org.testng.Assert.assertTrue;
 import org.testng.annotations.Test;
+
+import base.BaseTest;
 import pages.HomePage;
 import pages.LoginPage;
 import pages.SearchPage;
-
-import static org.testng.Assert.assertTrue;
 
 public class ExpediaTests extends BaseTest {
 
     LoginPage loginPage = new LoginPage();
     SearchPage searchPage = new SearchPage();
 
-
     @Test
-    void openExpediaHomePage() {
+    void openExpediaHomePageTest() {
         HomePage homePage = new HomePage().openPage();
         assertTrue(homePage.isLoaded(), "Expedia homepage is not loaded");
     }
 
-
     @Test
-    public void testSearchHotel() {
+    public void testSearchHotelTest() {
         loginPage.openLoginPage();
-//        loginPage.login("testuser@example.com");
-//        searchPage.searchHotel("New York");
+        // loginPage.login("testuser@example.com");
+        // searchPage.searchHotel("New York");
     }
 }

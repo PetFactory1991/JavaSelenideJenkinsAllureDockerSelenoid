@@ -1,47 +1,50 @@
 pipeline {
-	agent any
+    agent any
+    triggers {
+        pollSCM('* * * * *')  // Проверка каждую минуту
+    }
     parameters {
-		string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
+        string(name: 'BROWSER', defaultValue: 'chrome', description: 'Выберите браузер (chrome/firefox)')
     }
     environment {
-		ALLURE_HOME = "/opt/homebrew/bin/allure"
-        MAVEN_HOME = "/opt/homebrew/bin/mvn"
-        TELEGRAM_BOT_TOKEN = "8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E"
-        TELEGRAM_CHAT_ID = "7873857"
+        ALLURE_HOME = '/opt/homebrew/bin/allure'
+        MAVEN_HOME = '/opt/homebrew/bin/mvn'
+        TELEGRAM_BOT_TOKEN = '8040905753:AAEeindN9glf1rRMHxj_Na0cbVsxfiY1T-E'
+        TELEGRAM_CHAT_ID = '7873857'
         // Используйте рабочий URL вебхука
-        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+        SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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'
         PATH = "${ALLURE_HOME}:${env.PATH}"
     }
     stages {
-		stage('Checkout') {
-			steps {
-				git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid.git'
             }
         }
         stage('Cache Maven Dependencies') {
-			steps {
-				sh "${MAVEN_HOME} dependency:go-offline"
+            steps {
+                sh "${MAVEN_HOME} dependency:go-offline"
             }
         }
         stage('Run Tests') {
-			steps {
-				script {
-					catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-						sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
+            steps {
+                script {
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        sh "${MAVEN_HOME} clean test -Dbrowser=${params.BROWSER} -Dremote=http://165.22.93.142:4444/wd/hub"
                     }
                 }
             }
         }
         stage('Generate Allure Report') {
-			steps {
-				sh "${ALLURE_HOME} generate allure-results -o allure-report --clean"
+            steps {
+                sh "${ALLURE_HOME} generate allure-results -o allure-report --clean"
             }
         }
     }
     post {
-		always {
-			script {
-				// Чтение данных Allure-отчёта
+        always {
+            script {
+                // Чтение данных Allure-отчёта
                 def summary = readJSON file: 'allure-report/widgets/summary.json'
                 def totalTests = summary.statistic.total
                 def passedTests = summary.statistic.passed
@@ -53,12 +56,12 @@ pipeline {
                 def durationMin = durationSec / 60 as int
                 def durationRemainingSec = durationSec % 60 as int
 
-                def statusEmoji = (currentBuild.result == "SUCCESS") ? "🟢" : "🔴"
+                def statusEmoji = (currentBuild.result == 'SUCCESS') ? '🟢' : "🔴"
                 def allureReportUrl = "${env.BUILD_URL}/allure"
 
-                def commitHash = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+                def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                 def author = sh(script: "git show -s --pretty='%an'", returnStdout: true).trim()
-                def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                def commitMessage = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
                 def commitUrl = "https://github.com/PetFactory1991/JavaSelenideJenkinsAllureDockerSelenoid/commit/${commitHash}"
 
                 def telegramMessage = """🔹 *Jenkins Report* 🔹
@@ -91,19 +94,19 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
                 def slackMessage = [
                     text: "*Jenkins Report* ${statusEmoji}",
                     attachments: [[
-                        color: (currentBuild.result == "SUCCESS") ? "good" : "danger",
+                        color: (currentBuild.result == 'SUCCESS') ? 'good' : 'danger',
                         fields: [
-                            [title: "Job", value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
-                            [title: "Автор", value: author, short: true],
-                            [title: "Browser", value: "${params.BROWSER.toUpperCase()}", short: true],
-                            [title: "Коммит", value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
-                            [title: "Всего тестов", value: "${totalTests}", short: true],
-                            [title: "Прошло ✅", value: "${passedTests}", short: true],
-                            [title: "Упало ❌", value: "${failedTests}", short: true],
-                            [title: "Сломано ⚠️", value: "${brokenTests}", short: true],
-                            [title: "Пропущено ⏩", value: "${skippedTests}", short: true],
-                            [title: "Время выполнения ⏱", value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
-                            [title: "Отчёт 📋", value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
+                            [title: 'Job', value: "${env.JOB_NAME} #${env.BUILD_NUMBER}", short: true],
+                            [title: 'Автор', value: author, short: true],
+                            [title: 'Browser', value: "${params.BROWSER.toUpperCase()}", short: true],
+                            [title: 'Коммит', value: "<${commitUrl}|${commitHash.take(7)}> — ${commitMessage}", short: false],
+                            [title: 'Всего тестов', value: "${totalTests}", short: true],
+                            [title: 'Прошло ✅', value: "${passedTests}", short: true],
+                            [title: 'Упало ❌', value: "${failedTests}", short: true],
+                            [title: 'Сломано ⚠️', value: "${brokenTests}", short: true],
+                            [title: 'Пропущено ⏩', value: "${skippedTests}", short: true],
+                            [title: 'Время выполнения ⏱', value: "${durationMin} мин ${durationRemainingSec} сек", short: true],
+                            [title: 'Отчёт 📋', value: "<${allureReportUrl}|Перейти к отчёту>", short: false]
                         ]
                     ]]
                 ]
@@ -111,13 +114,13 @@ ${statusEmoji} *Статус:* ${currentBuild.result}"""
 
                 // Используем withCredentials для получения вебхука из Jenkins Credentials
                 withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK_URL')]) {
-					sh """
+                    sh """
                         curl -X POST -H 'Content-type: application/json' --data '${slackPayload}' $SLACK_WEBHOOK_URL
                     """
                 }
             }
             // Публикация Allure-отчёта
-            allure includeProperties: false, results: [[path: "allure-results"]]
+            allure includeProperties: false, results: [[path: 'allure-results']]
         }
     }
 }
